@@ -11,19 +11,9 @@ const app = express();
 app.use(express.json({ limit: "5mb" }));
 app.use(express.static(__dirname));
 
-/*
-|--------------------------------------------------------------------------
-| Hugging Face
-|--------------------------------------------------------------------------
-|
-| IMPORTANT:
-| Put your Hugging Face token in Render as:
-|
-| HF_TOKEN = hf_xxxxxxxxxxxxxxxxx
-|
-| DO NOT put your real token directly inside this file.
-|
-*/
+/* =========================================================
+   HUGGING FACE
+   ========================================================= */
 
 const HF_TOKEN = process.env.HF_TOKEN || "";
 
@@ -31,31 +21,53 @@ const hf = HF_TOKEN
   ? new InferenceClient(HF_TOKEN)
   : null;
 
-/*
-|--------------------------------------------------------------------------
-| SCRIPT DETECTION
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   SCENE DETECTION
+   Supports:
+
+   Scene 1:
+   Scene 1 -
+   Scene 1 —
+   Scene 1.
+   1.
+   1:
+   ========================================================= */
 
 function hasSceneMarkers(text) {
-  return /(?:^|\n)\s*(?:scene\s*)?\d+\s*[:.)-]/im.test(text);
+  return /(?:^|\n)\s*(?:(?:scene|scenes)\s*)?\d+\s*(?::|[.)-]|—|–)\s*/im.test(text);
 }
 
-/*
-|--------------------------------------------------------------------------
-| SPLIT SCENE-BY-SCENE SCRIPT
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   SPLIT SCRIPT INTO SCENES
+   ========================================================= */
 
 function splitScript(script) {
+
   const normalized = script
     .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
     .trim();
 
+  /*
+   * This recognizes:
+
+   Scene 1:
+   Scene 1 -
+   Scene 1 —
+   Scene 1.
+   1:
+   1.
+   1 -
+   1 —
+  */
+
+  const pattern =
+    /(?:^|\n)\s*(?:(?:scene|scenes)\s*)?(\d+)\s*(?::|[.)-]|—|–)\s*([^\n]*)/gi;
+
   const matches = [
-    ...normalized.matchAll(
-      /(?:^|\n)\s*(?:scene\s*)?(\d+)\s*[:.)-]\s*([^\n]*)/gi
-    )
+    ...normalized.matchAll(pattern)
   ];
 
   if (!matches.length) {
@@ -63,118 +75,126 @@ function splitScript(script) {
   }
 
   return matches.map((match, index) => {
-    const start = match.index + match[0].length;
+
+    const start =
+      match.index + match[0].length;
 
     const end =
       index + 1 < matches.length
         ? matches[index + 1].index
         : normalized.length;
 
-    const body = normalized
-      .slice(start, end)
-      .trim();
+    const body =
+      normalized
+        .slice(start, end)
+        .trim();
 
-    const heading = match[2].trim();
+    const heading =
+      (match[2] || "").trim();
 
     return {
-      number: Number(match[1]),
-      heading,
-      body: body || heading
+
+      number:
+        Number(match[1]),
+
+      heading:
+        heading ||
+        `Scene ${match[1]}`,
+
+      body:
+        body ||
+        heading ||
+        `Scene ${match[1]}`
     };
+
   });
 }
 
-/*
-|--------------------------------------------------------------------------
-| FIRST SENTENCE
-|--------------------------------------------------------------------------
-*/
 
-function firstSentence(text) {
-  const clean = text
-    .replace(/\s+/g, " ")
-    .trim();
+/* =========================================================
+   DURATION
+   ========================================================= */
 
-  const match = clean.match(
-    /^(.{1,180}?[.!?])(?:\s|$)/
-  );
+function estimateDuration(
+  total,
+  length
+) {
 
-  return (
-    match
-      ? match[1]
-      : clean.slice(0, 180)
-  ).trim();
-}
-
-/*
-|--------------------------------------------------------------------------
-| DURATION
-|--------------------------------------------------------------------------
-*/
-
-function estimateDuration(index, total, length) {
   if (
     length &&
     length !== "Auto — based on script"
   ) {
-    const minutes = Number.parseInt(
-      length,
-      10
-    );
+
+    const minutes =
+      Number.parseInt(
+        length,
+        10
+      );
 
     if (
       Number.isFinite(minutes) &&
       minutes > 0
     ) {
-      const seconds =
+
+      const totalSeconds =
         minutes * 60;
 
       return `${Math.max(
         3,
-        Math.round(seconds / total)
+        Math.round(
+          totalSeconds / total
+        )
       )} sec`;
+
     }
   }
 
-  const target =
-    total <= 4
-      ? 12
-      : total <= 8
-      ? 8
-      : 6;
+  if (total <= 4) {
+    return "12 sec";
+  }
 
-  return `${target} sec`;
+  if (total <= 8) {
+    return "8 sec";
+  }
+
+  return "6 sec";
 }
 
-/*
-|--------------------------------------------------------------------------
-| BUILD STORYBOARD FROM SCRIPT
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   BUILD SCRIPT STORYBOARD
+   ========================================================= */
 
 function buildScriptStoryboard(
   data,
   parsedScenes
 ) {
+
   const style =
-    data.style || "3D Cartoon";
+    data.style ||
+    "3D Cartoon";
 
   const audience =
-    data.audience || "Kids";
+    data.audience ||
+    "Kids";
 
   const length =
     data.length ||
     "Auto — based on script";
 
   const voice =
-    data.voice || "Warm Female";
+    data.voice ||
+    "Warm Female";
 
   const music =
-    data.music || "Playful";
+    data.music ||
+    "Playful";
+
 
   const scenes =
     parsedScenes.map(
-      (scene, index) => {
+      (scene) => {
+
         const body =
           scene.body
             .replace(/\s+/g, " ")
@@ -186,40 +206,85 @@ function buildScriptStoryboard(
 
         const duration =
           estimateDuration(
-            index,
             parsedScenes.length,
             length
           );
 
+
+        /*
+         * This prompt is used for the actual
+         * video generator.
+         */
+
+        const videoPrompt =
+
+          `${style}; ${audience}; ` +
+
+          `Scene ${scene.number}: ` +
+
+          `${body}; ` +
+
+          `cinematic composition; ` +
+
+          `expressive character acting; ` +
+
+          `smooth animation; ` +
+
+          `consistent character design; ` +
+
+          `consistent clothing and environment; ` +
+
+          `clear subject focus; ` +
+
+          `professional animated video; ` +
+
+          `no random text; ` +
+
+          `no subtitles; ` +
+
+          `no watermark; ` +
+
+          `do not add characters that are not in the script.`;
+
+
         return {
-          number: scene.number,
+
+          number:
+            scene.number,
 
           title,
 
           duration,
 
           visual:
-            `Use the supplied action for this scene in a ${style.toLowerCase()} style. ` +
-            `Keep characters, clothing, locations and props visually consistent from previous scenes. ` +
-            `Scene direction: ${body}`,
 
-          dialogue: body,
+            `Create this scene in a ${style.toLowerCase()} style. ` +
+
+            `Keep the characters, clothing, location and props consistent. ` +
+
+            body,
+
+          dialogue:
+            body,
 
           audio:
-            `${voice} narration/dialogue where appropriate, ` +
-            `with ${music.toLowerCase()} music and natural sound effects that match the action. ` +
-            `Preserve any lyrics or dialogue written in the script.`,
 
-          videoPrompt:
-            `${style}; ${audience}; ${body}; ` +
-            `cinematic composition; expressive character acting; ` +
-            `smooth animation; consistent character design; ` +
-            `clear subject focus; no random text or extra characters unless the script requests them.`
+            `${voice} narration/dialogue where appropriate. ` +
+
+            `Use ${music.toLowerCase()} music and natural sound effects. ` +
+
+            `Preserve all dialogue and lyrics written in the script.`,
+
+          videoPrompt
+
         };
+
       }
     );
 
+
   return {
+
     title:
       parsedScenes[0]?.heading ||
       "Scene-by-Scene Video",
@@ -230,19 +295,22 @@ function buildScriptStoryboard(
 
     length,
 
-    scriptMode: "script",
+    scriptMode:
+      "script",
 
     scenes
+
   };
+
 }
 
-/*
-|--------------------------------------------------------------------------
-| DEMO / IDEA STORYBOARD
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   IDEA MODE
+   ========================================================= */
 
 function buildDemoStoryboard(data) {
+
   const idea =
     (
       data.idea ||
@@ -261,7 +329,9 @@ function buildDemoStoryboard(data) {
     data.length ||
     "1 minute";
 
+
   return {
+
     title:
       idea.length > 55
         ? idea.slice(0, 55) + "…"
@@ -273,10 +343,13 @@ function buildDemoStoryboard(data) {
 
     length,
 
-    scriptMode: "idea",
+    scriptMode:
+      "idea",
 
     scenes: [
+
       {
+
         number: 1,
 
         title:
@@ -297,10 +370,12 @@ function buildDemoStoryboard(data) {
 
         videoPrompt:
           `${style}; colorful opening shot; expressive characters; ` +
-          `introduce the story clearly; smooth animation.`
+          `smooth animation; professional animated video.`
+
       },
 
       {
+
         number: 2,
 
         title:
@@ -310,21 +385,22 @@ function buildDemoStoryboard(data) {
           "10 sec",
 
         visual:
-          "A funny surprise appears and gets the characters' attention. " +
-          "Use expressive faces and energetic movement.",
+          "A funny surprise appears and gets the characters' attention.",
 
         dialogue:
-          "Whoa! Did you see that? We have to find out what is happening!",
+          "Whoa! Did you see that?",
 
         audio:
-          "A playful surprise sound followed by upbeat music.",
+          "Playful surprise sound followed by upbeat music.",
 
         videoPrompt:
           `${style}; funny surprise; expressive reactions; ` +
-          `energetic camera movement; playful timing.`
+          `energetic animation; professional video.`
+
       },
 
       {
+
         number: 3,
 
         title:
@@ -334,21 +410,22 @@ function buildDemoStoryboard(data) {
           "12 sec",
 
         visual:
-          `Turn the main idea into a simple, age-appropriate learning moment for ${audience.toLowerCase()}. ` +
-          "Use large colorful visual cues.",
+          `Create a simple learning moment for ${audience}.`,
 
         dialogue:
-          "Let's learn together! Can you say it with us?",
+          "Let's learn together!",
 
         audio:
-          "Cheerful teaching rhythm with space for children to repeat.",
+          "Cheerful educational music.",
 
         videoPrompt:
-          `${style}; educational visual; clear actions; bright colors; ` +
-          `friendly characters; child-safe presentation.`
+          `${style}; educational children's animation; ` +
+          `bright colors; friendly characters; smooth animation.`
+
       },
 
       {
+
         number: 4,
 
         title:
@@ -358,21 +435,22 @@ function buildDemoStoryboard(data) {
           "12 sec",
 
         visual:
-          "The characters solve a silly challenge together. " +
-          "Add physical comedy, colorful props and a clear beginning, middle and end.",
+          "The characters solve a silly challenge together.",
 
         dialogue:
-          "We can do it! Let's work together!",
+          "We can do it!",
 
         audio:
-          "Bouncy music that builds toward the solution.",
+          "Bouncy music and playful sound effects.",
 
         videoPrompt:
-          `${style}; comedic challenge; group teamwork; expressive animation; ` +
-          `colorful props; satisfying resolution.`
+          `${style}; funny challenge; teamwork; colorful props; ` +
+          `expressive animated characters.`
+
       },
 
       {
+
         number: 5,
 
         title:
@@ -382,82 +460,104 @@ function buildDemoStoryboard(data) {
           "10 sec",
 
         visual:
-          "The characters celebrate. Colorful shapes and friendly animated elements fill the scene.",
+          "The characters celebrate together.",
 
         dialogue:
-          "You did it! See you in our next adventure!",
+          "You did it! See you next time!",
 
         audio:
-          "Happy ending music and a short celebratory sound.",
+          "Happy ending music.",
 
         videoPrompt:
-          `${style}; joyful finale; characters celebrating; colorful background; ` +
-          `polished ending shot.`
+          `${style}; joyful finale; characters celebrating; ` +
+          `colorful background; polished ending.`
+
       }
+
     ]
+
   };
+
 }
 
-/*
-|--------------------------------------------------------------------------
-| CREATE STORYBOARD
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   STORYBOARD API
+   ========================================================= */
 
 app.post(
   "/api/storyboard",
   (req, res) => {
+
     try {
+
       const data =
         req.body || {};
 
       const idea =
-        (data.idea || "").trim();
+        String(
+          data.idea || ""
+        ).trim();
 
-      if (idea.length < 3) {
+
+      if (
+        idea.length < 3
+      ) {
+
         return res
           .status(400)
           .json({
+
             error:
               "Please paste a scene-by-scene script or enter a video idea."
+
           });
+
       }
 
+
       /*
-       * If the user supplied:
-       *
-       * Scene 1: ...
-       * Scene 2: ...
-       * Scene 3: ...
-       *
-       * we use their actual scenes.
+       * If scenes are detected,
+       * use the user's actual script.
        */
 
       if (
         hasSceneMarkers(idea)
       ) {
+
         const scenes =
           splitScript(idea);
 
-        if (scenes.length) {
+
+        if (
+          scenes.length
+        ) {
+
           return res.json(
             buildScriptStoryboard(
               data,
               scenes
             )
           );
+
         }
+
       }
+
 
       /*
        * Otherwise use idea mode.
        */
 
       return res.json(
-        buildDemoStoryboard(data)
+        buildDemoStoryboard(
+          data
+        )
       );
 
+
     } catch (error) {
+
       console.error(
         "Storyboard error:",
         error
@@ -466,107 +566,123 @@ app.post(
       return res
         .status(500)
         .json({
+
           error:
             "Could not create the storyboard."
+
         });
+
     }
+
   }
 );
 
-/*
-|--------------------------------------------------------------------------
-| GENERATE ONE VIDEO SCENE
-|--------------------------------------------------------------------------
-|
-| The frontend sends something like:
-|
-| {
-|   "prompt": "A colorful 3D cartoon..."
-| }
-|
-| Hugging Face generates the video and we return it
-| directly to the browser.
-|
-*/
+
+/* =========================================================
+   GENERATE VIDEO
+   ========================================================= */
 
 app.post(
   "/api/generate-video",
   async (req, res) => {
+
     try {
+
       /*
-       * Make sure the Hugging Face token exists.
+       * Check Hugging Face connection.
        */
 
-      if (!HF_TOKEN || !hf) {
+      if (
+        !HF_TOKEN ||
+        !hf
+      ) {
+
         return res
           .status(500)
           .json({
+
             error:
               "Hugging Face is not connected.",
+
             message:
-              "Add HF_TOKEN to your Render environment variables."
+              "Add HF_TOKEN to Render → Environment Variables."
+
           });
+
       }
+
 
       const data =
         req.body || {};
 
-      /*
-       * Accept either:
-       *
-       * prompt
-       *
-       * OR
-       *
-       * videoPrompt
-       */
 
-      const prompt = String(
-        data.prompt ||
-        data.videoPrompt ||
-        ""
-      ).trim();
+      const prompt =
+        String(
+          data.prompt ||
+          data.videoPrompt ||
+          ""
+        ).trim();
+
 
       if (!prompt) {
+
         return res
           .status(400)
           .json({
+
             error:
               "No video prompt was supplied."
+
           });
+
       }
 
+
       /*
-       * Add some production instructions.
+       * Production prompt.
        */
 
       const finalPrompt =
+
         `${prompt}. ` +
+
         `High quality animated video. ` +
-        `Smooth motion. ` +
+
+        `Smooth natural motion. ` +
+
         `Consistent characters. ` +
-        `Clean composition. ` +
+
+        `Consistent environment. ` +
+
+        `Cinematic camera movement. ` +
+
+        `Clear subject focus. ` +
+
+        `Professional animation. ` +
+
         `No subtitles. ` +
+
         `No watermark. ` +
+
         `No random text.`;
 
+
       console.log(
-        "Generating video..."
+        "Starting AI video generation..."
       );
 
       console.log(
         finalPrompt
       );
 
+
       /*
-       * Current Hugging Face text-to-video model.
-       *
-       * Hugging Face currently lists this model
-       * for text-to-video inference.
+       * Generate the video.
        */
 
       const video =
         await hf.textToVideo({
+
           model:
             "Wan-AI/Wan2.2-TI2V-5B",
 
@@ -575,11 +691,12 @@ app.post(
 
           provider:
             "auto"
+
         });
 
+
       /*
-       * Convert the returned Blob
-       * into a Node Buffer.
+       * Convert Blob → Buffer.
        */
 
       const buffer =
@@ -587,8 +704,9 @@ app.post(
           await video.arrayBuffer()
         );
 
+
       /*
-       * Tell browser this is an MP4 video.
+       * Send MP4 to browser.
        */
 
       res.setHeader(
@@ -606,54 +724,51 @@ app.post(
         "no-store"
       );
 
-      /*
-       * Send the actual video.
-       */
 
       return res.send(
         buffer
       );
 
+
     } catch (error) {
-      console.error(
-        "VIDEO GENERATION ERROR:"
-      );
 
       console.error(
+        "VIDEO GENERATION ERROR:",
         error
       );
+
 
       return res
         .status(500)
         .json({
+
           error:
             "Video generation failed.",
 
           message:
             error?.message ||
-            "Hugging Face could not generate this video.",
+            "The AI video provider could not generate this scene."
 
-          details:
-            process.env.NODE_ENV ===
-            "production"
-              ? undefined
-              : String(error)
         });
+
     }
+
   }
 );
 
-/*
-|--------------------------------------------------------------------------
-| HEALTH CHECK
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   HEALTH CHECK
+   ========================================================= */
 
 app.get(
   "/api/health",
   (req, res) => {
+
     res.json({
-      ok: true,
+
+      ok:
+        true,
 
       huggingFace:
         Boolean(HF_TOKEN),
@@ -662,23 +777,26 @@ app.get(
         HF_TOKEN
           ? "AI Video Creator is connected to Hugging Face."
           : "Server is running, but HF_TOKEN is missing."
+
     });
+
   }
 );
 
-/*
-|--------------------------------------------------------------------------
-| START SERVER
-|--------------------------------------------------------------------------
-*/
+
+/* =========================================================
+   START SERVER
+   ========================================================= */
 
 const PORT =
   process.env.PORT || 3000;
+
 
 app.listen(
   PORT,
   "0.0.0.0",
   () => {
+
     console.log(
       `AI Video Creator running on port ${PORT}`
     );
@@ -686,5 +804,6 @@ app.listen(
     console.log(
       `Hugging Face connected: ${Boolean(HF_TOKEN)}`
     );
+
   }
 );

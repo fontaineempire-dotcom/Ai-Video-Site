@@ -1,5 +1,7 @@
 const $ = (id) => document.getElementById(id);
 
+// Sample scripts
+
 document.querySelectorAll(".chips button").forEach(btn => {
   btn.addEventListener("click", () => {
     $("idea").value = btn.dataset.example;
@@ -10,13 +12,13 @@ document.querySelectorAll(".chips button").forEach(btn => {
 $("createBtn").addEventListener("click", async () => {
   const idea = $("idea").value.trim();
   if (!idea) {
-    $("status").textContent = "Tell us what you want your video to be about first.";
+    $("status").textContent = "Paste your scene-by-scene script first.";
     $("idea").focus();
     return;
   }
 
   $("createBtn").disabled = true;
-  $("status").textContent = "Creating your scene-by-scene storyboard…";
+  $("status").textContent = "Turning your script into production-ready scenes…";
 
   try {
     const response = await fetch("/api/storyboard", {
@@ -44,6 +46,7 @@ $("createBtn").addEventListener("click", async () => {
       <span class="meta">${escapeHtml($("ratio").value)}</span>
       <span class="meta">${escapeHtml($("voice").value)}</span>
       <span class="meta">${escapeHtml($("music").value)} music</span>
+      <span class="meta">${data.scriptMode === "script" ? `${data.scenes.length} scripted scenes` : "Idea storyboard"}</span>
     `;
 
     $("scenes").innerHTML = data.scenes.map(scene => `
@@ -61,19 +64,25 @@ $("createBtn").addEventListener("click", async () => {
             <p>${escapeHtml(scene.visual)}</p>
           </div>
           <div class="scene-box">
-            <strong>DIALOGUE</strong>
+            <strong>DIALOGUE / ACTION</strong>
             <p>${escapeHtml(scene.dialogue)}</p>
           </div>
           <div class="scene-box">
             <strong>AUDIO</strong>
             <p>${escapeHtml(scene.audio)}</p>
           </div>
+          <div class="scene-box">
+            <strong>VIDEO PROMPT</strong>
+            <p>${escapeHtml(scene.videoPrompt)}</p>
+          </div>
         </div>
       </article>
     `).join("");
 
     $("results").classList.remove("hidden");
-    $("status").textContent = "Storyboard created.";
+    $("status").textContent = data.scriptMode === "script"
+      ? `Done — ${data.scenes.length} scenes created from your script.`
+      : "Storyboard created.";
     $("results").scrollIntoView({behavior:"smooth", block:"start"});
   } catch (err) {
     $("status").textContent = err.message;
@@ -85,7 +94,7 @@ $("createBtn").addEventListener("click", async () => {
 $("videoBtn").addEventListener("click", async () => {
   const box = $("videoStatus");
   box.classList.remove("hidden");
-  box.textContent = "The video-generation connection is the next step. Your storyboard is ready to send to a real video model.";
+  box.textContent = "Your scenes are ready. The next connection is a real AI video-generation API, which will turn each scene prompt into video clips.";
 });
 
 function escapeHtml(value) {

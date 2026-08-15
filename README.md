@@ -1,30 +1,28 @@
 # AI Video Creator
 
-A GitHub-ready starter website for turning a video idea into an AI-generated storyboard.
+A single-page AI Video Creator prototype for turning a scene-by-scene script into structured video scenes.
 
-## Run locally
+## Features
+- Paste a complete Scene 1 / Scene 2 / Scene 3 script.
+- Automatically detects scene markers and creates one storyboard card per scene.
+- Preserves the supplied script as the dialogue/action source.
+- Adds visual, audio and AI video prompt guidance to every scene.
+- Supports visual style, audience, length, format, voice and music settings.
+- Still supports a simple idea prompt when no scene markers are supplied.
 
-1. Install Node.js.
-2. Open a terminal in this folder.
-3. Run:
-
+## Run
 ```bash
 npm install
-npm run dev
+npm start
 ```
 
-4. Open `http://localhost:3000`.
+Then open http://localhost:3000
 
-## What this starter does
+## Render
+Build command: `npm install`
+Start command: `npm start`
 
-- Collects a video idea, style, audience, length, aspect ratio, voice and music preferences.
-- Generates a scene-by-scene storyboard using a built-in demo generator.
-- Keeps the project structured so a real AI text/video API can be connected later.
+The app listens on `process.env.PORT` and serves the files from the repository root.
 
-## Important
-
-This version does **not** call a paid AI video API yet. It is a safe working prototype. API keys should only be stored server-side in environment variables, never in browser JavaScript.
-
-## Next integration
-
-Connect `/api/storyboard` to your preferred AI text API, then add a server-side video-generation job endpoint. The UI is already prepared for scene-by-scene generation.
+## Next step
+The `/api/generate-video` endpoint is intentionally a placeholder. Connect a server-side video-generation provider there to turn each scene's `videoPrompt` into actual video clips.

@@ -17,27 +17,28 @@
 
   <main>
     <section class="hero">
-      <div class="eyebrow">IDEA → STORY → VIDEO</div>
-      <h1>Turn your ideas into<br><span>AI video stories.</span></h1>
-      <p>Describe what you want to create. We'll turn your idea into a fun, scene-by-scene production plan ready for AI video generation.</p>
+      <div class="eyebrow">SCRIPT → SCENES → VIDEO</div>
+      <h1>Turn your script into<br><span>AI video scenes.</span></h1>
+      <p>Paste your scene-by-scene script and we'll organize every scene into visual, dialogue and audio instructions ready for AI video generation.</p>
     </section>
 
     <section class="creator-card">
       <div class="card-heading">
         <div>
           <span class="step">01</span>
-          <h2>Describe your video</h2>
+          <h2>Paste your scene-by-scene script</h2>
         </div>
         <span class="live-dot">● Ready</span>
       </div>
 
-      <label for="idea">Your idea</label>
-      <textarea id="idea" placeholder="Example: A funny kids' show with three new characters who teach children the alphabet through a catchy song..."></textarea>
+      <label for="idea">Your script</label>
+      <textarea id="idea" placeholder="Scene 1:\nA bright classroom. Three funny cartoon characters walk in and wave at the children.\n\nScene 2:\nThe first character teaches the letter A. A giant red apple appears and everyone sings.\n\nScene 3:\nThe second character teaches the letter B with a bouncing blue ball..."></textarea>
+      <p class="script-help">Use <strong>Scene 1:</strong>, <strong>Scene 2:</strong>, etc. Each scene can contain your action, dialogue, camera direction, music, or anything else you want the video to follow.</p>
 
       <div class="chips">
-        <button data-example="A funny kids' show with three silly characters teaching the alphabet in a catchy song.">Kids alphabet</button>
-        <button data-example="A magical bedtime adventure where two friends learn why sharing is important.">Bedtime story</button>
-        <button data-example="A colorful educational song that teaches children five animal names.">Learning song</button>
+        <button data-example="Scene 1:\nA bright classroom. Three funny cartoon characters walk in, wave at the children and introduce themselves.\n\nScene 2:\nThe first character teaches the letter A. A giant red apple appears. Everyone sings a short song about A.\n\nScene 3:\nThe second character teaches the letter B. A bouncing blue ball appears while the characters dance.\n\nScene 4:\nAll three characters sing the alphabet together as colorful letters float around the room.">Kids alphabet script</button>
+        <button data-example="Scene 1:\nTwo best friends get ready for bed and talk about their day.\n\nScene 2:\nA tiny glowing star appears at the window and invites them on a magical adventure.\n\nScene 3:\nThe friends learn that sharing and helping each other makes the adventure better.\n\nScene 4:\nThey return home, say goodnight and fall asleep under the stars.">Bedtime script</button>
+        <button data-example="Scene 1:\nA colorful farm appears with a happy child standing beside a friendly cow.\n\nScene 2:\nA playful dog runs in and teaches the word dog with a funny dance.\n\nScene 3:\nA little cat jumps onto a hay bale and everyone sings the animal names together.">Learning script</button>
       </div>
 
       <div class="options-grid">
@@ -63,6 +64,7 @@
         <div class="field">
           <label for="length">Length</label>
           <select id="length">
+            <option>Auto — based on script</option>
             <option>30 seconds</option>
             <option selected>1 minute</option>
             <option>2 minutes</option>
@@ -98,7 +100,7 @@
       </div>
 
       <button id="createBtn" class="primary-btn">
-        <span>✦</span> Create Storyboard
+        <span>✦</span> Create Scenes
       </button>
       <p id="status" class="status"></p>
     </section>
@@ -121,7 +123,7 @@
 
   <footer>
     <span>AI Video Creator</span>
-    <span>Prototype • Built for future AI video integrations</span>
+    <span>Scene-by-scene script studio</span>
   </footer>
 
   <script src="/app.js"></script>

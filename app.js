@@ -1,5 +1,8 @@
 const $ = (id) => document.getElementById(id);
 
+let currentStoryboard = null;
+
+
 /* =========================================================
    EXAMPLE SCRIPT BUTTONS
    ========================================================= */
@@ -23,6 +26,7 @@ $("createBtn").addEventListener("click", async () => {
   if (!script) {
     $("status").textContent =
       "Please paste your scene-by-scene script first.";
+
     $("idea").focus();
     return;
   }
@@ -35,6 +39,7 @@ $("createBtn").addEventListener("click", async () => {
   try {
 
     const response = await fetch("/api/storyboard", {
+
       method: "POST",
 
       headers: {
@@ -43,23 +48,34 @@ $("createBtn").addEventListener("click", async () => {
 
       body: JSON.stringify({
 
-        // The entire script the user typed
         idea: script,
 
-        // Settings selected by the user
-        style: $("style")?.value || "3D Cartoon",
+        style:
+          $("style")?.value ||
+          "3D Cartoon",
 
-        audience: $("audience")?.value || "Kids",
+        audience:
+          $("audience")?.value ||
+          "Kids",
 
-        length: $("length")?.value || "Auto — based on script",
+        length:
+          $("length")?.value ||
+          "Auto — based on script",
 
-        ratio: $("ratio")?.value || "16:9 — YouTube",
+        ratio:
+          $("ratio")?.value ||
+          "16:9 — YouTube",
 
-        voice: $("voice")?.value || "Warm Female",
+        voice:
+          $("voice")?.value ||
+          "Warm Female",
 
-        music: $("music")?.value || "Playful"
+        music:
+          $("music")?.value ||
+          "Playful"
 
       })
+
     });
 
 
@@ -68,9 +84,15 @@ $("createBtn").addEventListener("click", async () => {
 
     if (!response.ok) {
       throw new Error(
-        data.error || "Could not create the storyboard."
+        data.error ||
+        "Could not create storyboard."
       );
     }
+
+
+    /* Save storyboard for Generate Video */
+
+    currentStoryboard = data;
 
 
     /* =====================================================
@@ -78,7 +100,8 @@ $("createBtn").addEventListener("click", async () => {
        ===================================================== */
 
     $("projectTitle").textContent =
-      data.title || "Your Video Project";
+      data.title ||
+      "Your Video Project";
 
 
     $("projectMeta").innerHTML = `
@@ -100,115 +123,149 @@ $("createBtn").addEventListener("click", async () => {
       </span>
 
       <span class="meta">
-        ${escapeHtml(data.voice || $("voice")?.value || "")}
+        ${escapeHtml(
+          data.voice ||
+          $("voice")?.value ||
+          ""
+        )}
       </span>
 
       <span class="meta">
-        ${escapeHtml(data.music || $("music")?.value || "")} music
+        ${escapeHtml(
+          data.music ||
+          $("music")?.value ||
+          ""
+        )} music
       </span>
 
       <span class="meta">
-        ${data.scriptMode === "script"
-          ? `${data.scenes.length} scripted scenes`
-          : "Idea storyboard"}
+        ${
+          data.scriptMode === "script"
+            ? `${data.scenes.length} scripted scenes`
+            : "Idea storyboard"
+        }
       </span>
 
     `;
 
 
     /* =====================================================
-       CREATE THE SCENES
+       DISPLAY SCENES
        ===================================================== */
 
-    $("scenes").innerHTML = data.scenes.map((scene) => {
+    $("scenes").innerHTML =
+      data.scenes.map((scene) => {
 
-      return `
+        return `
 
-        <article class="scene">
+          <article
+            class="scene"
+            id="scene-${scene.number}"
+          >
 
-          <div class="scene-head">
+            <div class="scene-head">
 
-            <div>
+              <div>
 
-              <div class="scene-num">
-                SCENE ${escapeHtml(scene.number)}
+                <div class="scene-num">
+                  SCENE ${escapeHtml(scene.number)}
+                </div>
+
+                <h3>
+                  ${escapeHtml(scene.title)}
+                </h3>
+
               </div>
 
-              <h3>
-                ${escapeHtml(scene.title)}
-              </h3>
-
-            </div>
-
-            <div class="duration">
-              ${escapeHtml(scene.duration)}
-            </div>
-
-          </div>
-
-
-          <div class="scene-grid">
-
-
-            <!-- VISUAL -->
-
-            <div class="scene-box">
-
-              <strong>VISUAL</strong>
-
-              <p>
-                ${escapeHtml(scene.visual)}
-              </p>
+              <div class="duration">
+                ${escapeHtml(scene.duration)}
+              </div>
 
             </div>
 
 
-            <!-- DIALOGUE / ACTION -->
+            <div class="scene-grid">
 
-            <div class="scene-box">
 
-              <strong>DIALOGUE / ACTION</strong>
+              <!-- VISUAL -->
 
-              <p>
-                ${escapeHtml(scene.dialogue)}
-              </p>
+              <div class="scene-box">
+
+                <strong>VISUAL</strong>
+
+                <p>
+                  ${escapeHtml(scene.visual)}
+                </p>
+
+              </div>
+
+
+              <!-- DIALOGUE -->
+
+              <div class="scene-box">
+
+                <strong>DIALOGUE / ACTION</strong>
+
+                <p>
+                  ${escapeHtml(scene.dialogue)}
+                </p>
+
+              </div>
+
+
+              <!-- AUDIO -->
+
+              <div class="scene-box">
+
+                <strong>AUDIO</strong>
+
+                <p>
+                  ${escapeHtml(scene.audio)}
+                </p>
+
+              </div>
+
+
+              <!-- VIDEO PROMPT -->
+
+              <div class="scene-box">
+
+                <strong>VIDEO PROMPT</strong>
+
+                <p>
+                  ${escapeHtml(scene.videoPrompt)}
+                </p>
+
+              </div>
+
 
             </div>
 
 
-            <!-- AUDIO -->
+            <!-- INDIVIDUAL VIDEO BUTTON -->
 
-            <div class="scene-box">
+            <div class="scene-actions">
 
-              <strong>AUDIO</strong>
+              <button
+                class="scene-video-btn"
+                onclick="generateSingleScene(${scene.number})"
+              >
+                🎬 Generate Scene ${scene.number}
+              </button>
 
-              <p>
-                ${escapeHtml(scene.audio)}
-              </p>
-
-            </div>
-
-
-            <!-- VIDEO PROMPT -->
-
-            <div class="scene-box">
-
-              <strong>VIDEO PROMPT</strong>
-
-              <p>
-                ${escapeHtml(scene.videoPrompt)}
-              </p>
+              <div
+                id="video-result-${scene.number}"
+                class="video-result"
+              ></div>
 
             </div>
 
 
-          </div>
+          </article>
 
-        </article>
+        `;
 
-      `;
-
-    }).join("");
+      }).join("");
 
 
     /* =====================================================
@@ -218,20 +275,13 @@ $("createBtn").addEventListener("click", async () => {
     $("results").classList.remove("hidden");
 
 
-    if (data.scriptMode === "script") {
+    $("status").textContent =
+      data.scriptMode === "script"
 
-      $("status").textContent =
-        `Done! Your ${data.scenes.length} scenes were created directly from your script.`;
+        ? `Done! ${data.scenes.length} scenes were created from your script.`
 
-    } else {
+        : "Storyboard created.";
 
-      $("status").textContent =
-        "Storyboard created.";
-
-    }
-
-
-    /* Scroll to the generated storyboard */
 
     $("results").scrollIntoView({
       behavior: "smooth",
@@ -245,7 +295,7 @@ $("createBtn").addEventListener("click", async () => {
 
     $("status").textContent =
       error.message ||
-      "Something went wrong while creating your scenes.";
+      "Something went wrong.";
 
   } finally {
 
@@ -257,78 +307,333 @@ $("createBtn").addEventListener("click", async () => {
 
 
 /* =========================================================
-   GENERATE VIDEO BUTTON
+   GENERATE ALL VIDEOS
    ========================================================= */
 
 $("videoBtn").addEventListener("click", async () => {
 
-  const box = $("videoStatus");
+  if (
+    !currentStoryboard ||
+    !currentStoryboard.scenes ||
+    !currentStoryboard.scenes.length
+  ) {
+
+    $("videoStatus").classList.remove("hidden");
+
+    $("videoStatus").textContent =
+      "Create your storyboard first.";
+
+    return;
+  }
+
+
+  const box =
+    $("videoStatus");
 
   box.classList.remove("hidden");
 
   box.textContent =
-    "Preparing your scenes for AI video generation…";
+    `Starting video generation for ${currentStoryboard.scenes.length} scenes…`;
 
 
-  try {
+  /*
+   * Generate scenes one at a time.
+   * This prevents multiple large AI requests
+   * from being sent at once.
+   */
 
-    const response = await fetch("/api/generate-video", {
+  for (
+    let i = 0;
+    i < currentStoryboard.scenes.length;
+    i++
+  ) {
 
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-
-        message: "Generate videos from the storyboard."
-
-      })
-
-    });
-
-
-    const data = await response.json();
-
-
-    if (!response.ok) {
-      throw new Error(
-        data.error || "Video generation is not connected yet."
-      );
-    }
+    const scene =
+      currentStoryboard.scenes[i];
 
 
     box.textContent =
-      data.message ||
-      "Your video generation request has been submitted.";
+      `Generating Scene ${scene.number} of ${currentStoryboard.scenes.length}…`;
 
-  } catch (error) {
 
-    /*
-      At this stage your server still returns a message
-      saying the real video-generation API needs to be
-      connected.
-    */
-
-    box.textContent =
-      error.message ||
-      "The storyboard is ready, but video generation is not connected yet.";
+    await generateScene(scene);
 
   }
+
+
+  box.textContent =
+    "🎉 All available scenes have finished generating.";
 
 });
 
 
 /* =========================================================
-   SAFE HTML ESCAPING
+   GENERATE ONE SCENE
+   ========================================================= */
+
+async function generateSingleScene(sceneNumber) {
+
+  if (!currentStoryboard) {
+
+    return;
+
+  }
+
+
+  const scene =
+    currentStoryboard.scenes.find(
+      (item) =>
+        Number(item.number) ===
+        Number(sceneNumber)
+    );
+
+
+  if (!scene) {
+
+    return;
+
+  }
+
+
+  await generateScene(scene);
+
+}
+
+
+/* =========================================================
+   ACTUAL VIDEO REQUEST
+   ========================================================= */
+
+async function generateScene(scene) {
+
+  const result =
+    $(`video-result-${scene.number}`);
+
+
+  if (!result) {
+    return;
+  }
+
+
+  result.innerHTML = `
+
+    <div class="video-loading">
+
+      🎬 Generating Scene ${scene.number}…
+
+      <br>
+
+      <small>
+        AI video generation can take a little while.
+      </small>
+
+    </div>
+
+  `;
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/generate-video",
+        {
+
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+
+            sceneNumber:
+              scene.number,
+
+            title:
+              scene.title,
+
+            prompt:
+              scene.videoPrompt,
+
+            visual:
+              scene.visual,
+
+            dialogue:
+              scene.dialogue,
+
+            audio:
+              scene.audio,
+
+            duration:
+              scene.duration,
+
+            ratio:
+              $("ratio")?.value ||
+              "16:9 — YouTube"
+
+          })
+
+        }
+      );
+
+
+    /*
+     * The server returns MP4 directly
+     * when generation succeeds.
+     */
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) || "";
+
+
+    if (!response.ok) {
+
+      let errorMessage =
+        "Video generation failed.";
+
+      if (
+        contentType.includes(
+          "application/json"
+        )
+      ) {
+
+        const errorData =
+          await response.json();
+
+        errorMessage =
+          errorData.message ||
+          errorData.error ||
+          errorMessage;
+
+      } else {
+
+        const text =
+          await response.text();
+
+        if (text) {
+          errorMessage = text;
+        }
+
+      }
+
+      throw new Error(
+        errorMessage
+      );
+
+    }
+
+
+    /*
+     * Make sure we actually received
+     * a video.
+     */
+
+    if (
+      !contentType.includes(
+        "video"
+      )
+    ) {
+
+      throw new Error(
+        "The server did not return a video file."
+      );
+
+    }
+
+
+    const blob =
+      await response.blob();
+
+
+    const videoUrl =
+      URL.createObjectURL(
+        blob
+      );
+
+
+    /*
+     * Display video.
+     */
+
+    result.innerHTML = `
+
+      <div class="generated-video">
+
+        <video
+          controls
+          playsinline
+          preload="metadata"
+        >
+          <source
+            src="${videoUrl}"
+            type="video/mp4"
+          >
+        </video>
+
+
+        <div class="video-complete">
+
+          ✅ Scene ${scene.number} generated
+
+        </div>
+
+      </div>
+
+    `;
+
+
+  } catch (error) {
+
+    console.error(
+      `Scene ${scene.number} error:`,
+      error
+    );
+
+
+    result.innerHTML = `
+
+      <div class="video-error">
+
+        ❌ Scene ${scene.number} could not be generated.
+
+        <br><br>
+
+        <small>
+          ${escapeHtml(
+            error.message ||
+            "Unknown error"
+          )}
+        </small>
+
+      </div>
+
+      <button
+        class="scene-video-btn"
+        onclick="generateSingleScene(${scene.number})"
+      >
+        🔄 Try Again
+      </button>
+
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   HTML ESCAPING
    ========================================================= */
 
 function escapeHtml(value) {
 
-  return String(value ?? "").replace(
+  return String(
+    value ?? ""
+  ).replace(
     /[&<>"']/g,
-
     (character) => {
 
       const characters = {
@@ -345,7 +650,9 @@ function escapeHtml(value) {
 
       };
 
-      return characters[character];
+      return characters[
+        character
+      ];
 
     }
   );

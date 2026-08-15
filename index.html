@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Video Creator</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="background-glow glow-one"></div>
+  <div class="background-glow glow-two"></div>
+
+  <header class="nav">
+    <div class="brand"><span class="brand-mark">✦</span> AI Video Creator</div>
+    <div class="nav-pill">Storyboard Studio</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">IDEA → STORY → VIDEO</div>
+      <h1>Turn your ideas into<br><span>AI video stories.</span></h1>
+      <p>Describe what you want to create. We'll turn your idea into a fun, scene-by-scene production plan ready for AI video generation.</p>
+    </section>
+
+    <section class="creator-card">
+      <div class="card-heading">
+        <div>
+          <span class="step">01</span>
+          <h2>Describe your video</h2>
+        </div>
+        <span class="live-dot">● Ready</span>
+      </div>
+
+      <label for="idea">Your idea</label>
+      <textarea id="idea" placeholder="Example: A funny kids' show with three new characters who teach children the alphabet through a catchy song..."></textarea>
+
+      <div class="chips">
+        <button data-example="A funny kids' show with three silly characters teaching the alphabet in a catchy song.">Kids alphabet</button>
+        <button data-example="A magical bedtime adventure where two friends learn why sharing is important.">Bedtime story</button>
+        <button data-example="A colorful educational song that teaches children five animal names.">Learning song</button>
+      </div>
+
+      <div class="options-grid">
+        <div class="field">
+          <label for="style">Visual style</label>
+          <select id="style">
+            <option>3D Cartoon</option>
+            <option>2D Cartoon</option>
+            <option>Storybook</option>
+            <option>Anime-Inspired</option>
+            <option>Bright Educational</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="audience">Audience</label>
+          <select id="audience">
+            <option>Kids 3–5</option>
+            <option>Kids 6–8</option>
+            <option>Kids 9–12</option>
+            <option>Family</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="length">Length</label>
+          <select id="length">
+            <option>30 seconds</option>
+            <option selected>1 minute</option>
+            <option>2 minutes</option>
+            <option>5 minutes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ratio">Format</label>
+          <select id="ratio">
+            <option>16:9 — YouTube</option>
+            <option>9:16 — Shorts / Reels</option>
+            <option>1:1 — Social</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="voice">Voice</label>
+          <select id="voice">
+            <option>Warm Female</option>
+            <option>Friendly Male</option>
+            <option>Playful Character</option>
+            <option>Multiple Characters</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="music">Music</label>
+          <select id="music">
+            <option>Playful</option>
+            <option>Upbeat</option>
+            <option>Gentle</option>
+            <option>None</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="createBtn" class="primary-btn">
+        <span>✦</span> Create Storyboard
+      </button>
+      <p id="status" class="status"></p>
+    </section>
+
+    <section id="results" class="results hidden">
+      <div class="results-top">
+        <div>
+          <div class="eyebrow">YOUR PROJECT</div>
+          <h2 id="projectTitle">Your Storyboard</h2>
+        </div>
+        <button id="videoBtn" class="secondary-btn">Generate Video</button>
+      </div>
+
+      <div id="projectMeta" class="meta-row"></div>
+      <div id="scenes" class="scenes"></div>
+
+      <div id="videoStatus" class="video-status hidden"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>AI Video Creator</span>
+    <span>Prototype • Built for future AI video integrations</span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
